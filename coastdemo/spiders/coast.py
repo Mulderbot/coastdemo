@@ -58,28 +58,23 @@ class CoastSpider(scrapy.Spider):
     def parse_item(self, response):
         body = pq(response.body)
 
-        offer_price = self.get_price(body)
-        initial_price = self.get_initial_price(body)
-        name = self.get_name(body)
-
         item_parsed = {
             "code": self.get_code(body),
             "name": self.get_name(body),
             "description": self.get_description(body),
             "designer": "Coast",
             "raw_color": self.get_raw_color(body),
-            "price": offer_price,
+            "price": self.get_price(body),
             "currency": self.get_currency(body),
-            "sale_discount": self.calculate_discount(offer_price, 
-                                                     initial_price),
+            "sale_discount": self.calculate_discount(body),
             "link": response.request.url,
-            "item_type": self.get_item_type(name),
+            "item_type": self.get_item_type(body),
             "gender": "F",
             "stock_status": self.get_stock(body),
             "skus": self.get_skus(body),
             "image_urls": self.get_image_links(body),
-            "price_usd": self.get_currency_price(offer_price, self.gbp_usd),
-            "price_eur": self.get_currency_price(offer_price, self.gbp_eur)
+            "price_usd": self.get_currency_price(body, self.gbp_usd),
+            "price_eur": self.get_currency_price(body, self.gbp_eur)
         }
 
         yield CoastdemoItem(**item_parsed)
@@ -138,6 +133,37 @@ class CoastSpider(scrapy.Spider):
             currency = "EUR"
 
         return currency
+
+
+    # -- get item type --
+    def get_item_type(self, body):
+        item_type = "A"
+        shoes = ['heels', 'sandal', 'sandals', 'shoes']
+        bags = ['bag', 'handbag']
+        jewelery = ['necklace', 'earrings', 'bracelet', 'cuff', 'belt']
+        accessories = ['fascinator', 'hat', 'clip', 'scarf', 'cards', 
+                       'wedding', 'shawl', 'poncho']
+
+        name = self.get_name(body).lower()
+
+        # -- find type by word --
+        for i in shoes:
+            if name.find(i) >= 0:
+                item_type = "S"
+
+        for i in bags:
+            if name.find(i) >= 0:
+                item_type = "B"
+
+        for i in jewelery:
+            if name.find(i) >= 0:
+                item_type = "J"
+
+        for i in accessories:
+            if name.find(i) >= 0:
+                item_type = "R"
+
+        return item_type
 
 
     # -- get initial price --
@@ -208,52 +234,25 @@ class CoastSpider(scrapy.Spider):
 
 
     # -- get price in currency --
-    def get_currency_price(self, offer_price, currency_change):
+    def get_currency_price(self, response, currency_change):
+	offer_price = self.get_price(response)
+
         return round(offer_price * currency_change, 2)
 
 
     #### OTHER FUNCTIONS ####
 
     # -- calculate discount --
-    def calculate_discount(self, offer_price, initial_price):
+    def calculate_discount(self, response):
         discount = 0.00
+
+	offer_price = self.get_price(response)
+	initial_price = self.get_initial_price(response)
 
         if initial_price > 0.00:
             discount = round((offer_price * 100.00) / initial_price, 2)
 
         return discount
-
-
-    # -- get item type --
-    def get_item_type(self, name):
-        item_type = "A"
-        shoes = ['heels', 'sandal', 'sandals', 'shoes']
-        bags = ['bag', 'handbag']
-        jewelery = ['necklace', 'earrings', 'bracelet', 'cuff', 'belt']
-        accessories = ['fascinator', 'hat', 'clip', 'scarf', 'cards', 
-                       'wedding', 'shawl', 'poncho']
-
-        # -- get data to compare --
-        product_name = name.lower()
-
-        # -- find type by word --
-        for i in shoes:
-            if product_name.find(i) >= 0:
-                item_type = "S"
-
-        for i in bags:
-            if product_name.find(i) >= 0:
-                item_type = "B"
-
-        for i in jewelery:
-            if product_name.find(i) >= 0:
-                item_type = "J"
-
-        for i in accessories:
-            if product_name.find(i) >= 0:
-                item_type = "R"
-
-        return item_type
 
 
     # -- get currencies prices --
