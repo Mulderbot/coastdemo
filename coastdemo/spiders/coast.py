@@ -199,6 +199,13 @@ class CoastSpider(scrapy.Spider):
             size = str(i("a.highlight").text())
             stock[size] = True
 
+	# -- out of stock --
+	out_of_stock = response("p.out-of-stock").text()
+
+	if out_of_stock.lower() == "out of stock":
+		for size in ['10', '12', '14', '16', '18', '6', '8']:
+			stock[size] = False
+
         return stock
 
 
