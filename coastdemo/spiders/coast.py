@@ -60,32 +60,57 @@ class CoastSpider(scrapy.Spider):
 
         offer_price = self.get_price(body)
         initial_price = self.get_initial_price(body)
-        name = body("h1").text()
-        item_type = self.get_item_type(name)
-        price_usd = round(offer_price * self.gbp_usd, 2)
-        price_eur = round(offer_price * self.gbp_eur, 2)
+        name = self.get_name(body)
 
         item_parsed = {
-            "code": response.request.url.split("/")[-1],
-            "name": name,
-            "description": body("div.info p").text(),
+            "code": self.get_code(body),
+            "name": self.get_name(body),
+            "description": self.get_description(body),
             "designer": "Coast",
-            "raw_color": body("ul li.active span").text(),
+            "raw_color": self.get_raw_color(body),
             "price": offer_price,
             "currency": self.get_currency(body),
             "sale_discount": self.calculate_discount(offer_price, 
                                                      initial_price),
             "link": response.request.url,
-            "item_type": item_type,
+            "item_type": self.get_item_type(name),
             "gender": "F",
             "stock_status": self.get_stock(body),
             "skus": self.get_skus(body),
             "image_urls": self.get_image_links(body),
-            "price_usd": price_usd,
-            "price_eur": price_eur
+            "price_usd": self.get_currency_price(offer_price, self.gbp_usd),
+            "price_eur": self.get_currency_price(offer_price, self.gbp_eur)
         }
 
         yield CoastdemoItem(**item_parsed)
+
+
+    # -- get code --
+    def get_code(self, response):
+        code = ""
+
+        for i in response("div.info p").items():
+            tmpcode = str(i.text())
+            if tmpcode.find("Product code:") >= 0:
+                tmp = tmpcode.split(":")
+                if len(tmp) > 1:
+                    code = tmp[1]
+
+        return code
+
+
+    # -- get description --
+    def get_description(self, response):
+        return response("div.info p").text()
+
+
+    # -- get raw color --
+    def get_raw_color(self, response):
+        return response("ul li.active span").text()
+
+    # -- get name --
+    def get_name(self, response):
+        return response("h1").text()
 
 
     # -- get price --
@@ -180,6 +205,11 @@ class CoastSpider(scrapy.Spider):
             image_urls.append(image_link)
 
         return image_urls
+
+
+    # -- get price in currency --
+    def get_currency_price(self, offer_price, currency_change):
+        return round(offer_price * currency_change, 2)
 
 
     #### OTHER FUNCTIONS ####
