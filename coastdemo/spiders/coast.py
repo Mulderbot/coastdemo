@@ -16,7 +16,7 @@ class CoastSpider(scrapy.Spider):
     gbp_eur = 0.00
 
 
-    #### PARSE FUNCTIONS ####
+    #### MAIN PARSE FUNCTIONS ####
 
     # -- main parse function --
     def parse(self, response):
@@ -79,6 +79,9 @@ class CoastSpider(scrapy.Spider):
 
         yield CoastdemoItem(**item_parsed)
 
+
+
+    ### ADDITIONAL PARSE FUNCTIONS ###
 
     # -- get code --
     def get_code(self, response):
@@ -235,12 +238,15 @@ class CoastSpider(scrapy.Spider):
 
     # -- get price in currency --
     def get_currency_price(self, response, currency_change):
-	offer_price = self.get_price(response)
+        new_price = 0.00
+        currency = self.get_currency(response)
 
-        return round(offer_price * currency_change, 2)
+        if currency == "GBP":
+		offer_price = self.get_price(response)
+		new_price = round(offer_price * currency_change, 2)
 
+        return new_price
 
-    #### OTHER FUNCTIONS ####
 
     # -- calculate discount --
     def calculate_discount(self, response):
